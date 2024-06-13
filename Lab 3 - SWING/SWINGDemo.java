@@ -1,14 +1,21 @@
 package com.mybank.gui;
 
+import com.mybank.data.DataSource;
 import com.mybank.domain.Bank;
 import com.mybank.domain.CheckingAccount;
 import com.mybank.domain.Customer;
 import com.mybank.domain.SavingsAccount;
+import com.mybank.reporting.CustomerReport;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.Locale;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JEditorPane;
@@ -23,6 +30,7 @@ public class SWINGDemo {
     
     private final JEditorPane log;
     private final JButton show;
+    private final JButton report;
     private final JComboBox clients;
     
     public SWINGDemo() {
@@ -30,6 +38,8 @@ public class SWINGDemo {
         log.setPreferredSize(new Dimension(250, 150));
         show = new JButton("Show");
         clients = new JComboBox();
+        report = new JButton("Report");
+
         for (int i=0; i<Bank.getNumberOfCustomers();i++)
         {
             clients.addItem(Bank.getCustomer(i).getLastName()+", "+Bank.getCustomer(i).getFirstName());
@@ -45,6 +55,7 @@ public class SWINGDemo {
         
         cpane.add(clients);
         cpane.add(show);
+        cpane.add(report);
         frame.add(cpane, BorderLayout.NORTH);
         frame.add(log, BorderLayout.CENTER);
         
@@ -60,6 +71,24 @@ public class SWINGDemo {
                 log.setText(custInfo);                
             }
         });
+
+        report.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ByteArrayOutputStream bs = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(bs);
+
+                System.setOut(ps);
+
+                new CustomerReport().generateReport();
+
+                System.out.flush();
+                System.setOut(System.out);
+
+                log.setText(bs.toString().replace("\n", "<br>"));
+                log.setAutoscrolls(true);
+            }
+        });
         
         frame.pack();
         frame.setLocationRelativeTo(null);
@@ -68,17 +97,20 @@ public class SWINGDemo {
         frame.setVisible(true);        
     }
     
-    public static void main(String[] args) {
-        
+    public static void main(String[] args) throws IOException {
+        Locale.setDefault(new Locale("en","us"));
+
+        new DataSource("./data/test.dat").loadData();
+
         Bank.addCustomer("John", "Doe");
         Bank.addCustomer("Fox", "Mulder");
         Bank.addCustomer("Dana", "Scully");
         Bank.getCustomer(0).addAccount(new CheckingAccount(2000));
         Bank.getCustomer(1).addAccount(new SavingsAccount(1000, 3));
         Bank.getCustomer(2).addAccount(new CheckingAccount(1000, 500));
+
         
         SWINGDemo demo = new SWINGDemo();        
         demo.launchFrame();
     }
-    
 }
